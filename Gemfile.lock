@@ -28,6 +28,14 @@ GEM
       activemodel (= 4.1.8)
       activesupport (= 4.1.8)
       arel (~> 5.0.0)
+    activerecord-mysql-awesome (0.0.4)
+      activerecord (~> 4.0)
+      activesupport (~> 4.0)
+      mysql2
+    activerecord-mysql-unsigned (0.3.1)
+      activerecord (>= 3.2, < 5.0)
+      activesupport (>= 3.2, < 5.0)
+      mysql2
     activesupport (4.1.8)
       i18n (~> 0.6, >= 0.6.9)
       json (~> 1.7, >= 1.7.7)
@@ -175,6 +183,8 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  activerecord-mysql-awesome
+  activerecord-mysql-unsigned
   capistrano-rails
   capistrano-scm-copy
   chronic
