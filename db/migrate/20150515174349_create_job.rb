@@ -7,9 +7,10 @@ class CreateJob < ActiveRecord::Migration
       t.column 'title', :string,   null: false, limit: 250, charset: 'utf8mb4'
       t.column 'state', :string,   null: false, limit: 100, charset: 'ascii'
       t.timestamps null: false
+
+      t.index ['ch', 'start', 'state'], name: 'start_index'
+      t.index ['ch', 'end',   'state'], name: 'end_index'
     end
-    add_index 'jobs', ['ch', 'start', 'state'], name: 'start_index'
-    add_index 'jobs', ['ch', 'end',   'state'], name: 'end_index'
   end
 
   def down
