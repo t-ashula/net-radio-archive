@@ -21,3 +21,6 @@ config/database.yml
 config/settings.yml
 config/deploy/production.rb
 config/deploy/staging.rb
+
+# unusable
+/db/schema.rb
