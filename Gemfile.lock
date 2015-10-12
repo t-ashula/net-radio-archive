@@ -183,7 +183,7 @@ DEPENDENCIES
   jquery-rails
   mechanize
   moji
-  mysql2
+  mysql2 (~> 0.3.17)
   niconico!
   nokogiri
   rails (= 4.1.8)
