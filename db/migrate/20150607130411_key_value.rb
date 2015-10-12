@@ -1,18 +1,25 @@
 class KeyValue < ActiveRecord::Migration
   def up
-    sql = <<EOF
-CREATE TABLE `key_value` (
-    `key` varchar(256) CHARACTER SET ASCII NOT NULL,
-    `value` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
-    `created_at` datetime NOT NULL,
-    `updated_at` datetime NOT NULL,
-    PRIMARY KEY (`key`)
-);
-EOF
-    ActiveRecord::Base.connection.execute(sql)
+    adapter = connection.adapter_name.downcase
+    create_table 'key_value', force: true, id: false do |t|
+      if adapter == 'sqlite'
+        t.column 'key', 'varchar(256) PRIMARY KEY NOT NULL'
+      else
+        t.column 'key', :string, null: false, limit: 256, charset: 'ascii'
+      end
+      t.column 'value', :string, null: false, limit: 250, charset: 'utf8mb4'
+      t.timestamps null: false
+
+    end
+
+    if adapter == 'sqlite'
+      # nothing
+    else
+      execute 'ALTER TABLE key_value ADD PRIMARY KEY (`key`);'
+    end
   end
+  
   def down
-    sql = 'DROP TABLE `key_value`;'
-    ActiveRecord::Base.connection.execute(sql)
+    drop_table 'key_value'
   end
 end
