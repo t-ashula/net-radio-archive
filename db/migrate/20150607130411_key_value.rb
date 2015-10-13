@@ -14,8 +14,10 @@ class KeyValue < ActiveRecord::Migration
 
     if adapter == 'sqlite'
       # nothing
-    else
+    elsif adapter == 'mysql2'
       execute 'ALTER TABLE key_value ADD PRIMARY KEY (`key`);'
+    else 
+      execute 'ALTER TABLE key_value ADD PRIMARY KEY ("key");'
     end
   end
   
