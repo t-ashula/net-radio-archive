@@ -155,11 +155,7 @@ module Main
       job = nil
       ActiveRecord::Base.transaction do
         job = Job
-          .where(
-            "? <= `start` and `start` <= ?",
-            2.minutes.ago,
-            5.minutes.from_now
-          )
+          .where({ start: (2.minutes.ago)..(5.minutes.from_now) })
           .where(state: Job::STATE[:scheduled])
           .order(:start)
           .lock
@@ -208,7 +204,7 @@ module Main
         # これに対応するため検索で発見しても一定時間待つ
         p = NiconicoLiveProgram
           .where(state: NiconicoLiveProgram::STATE[:waiting])
-          .where('`created_at` <= ?', 2.hours.ago)
+          .where('created_at <= ?', 2.hours.ago)
           .lock
           .first
         unless p
@@ -312,8 +308,8 @@ module Main
                klass::STATE[:failed],
                klass::STATE[:downloading],
         ])
-        .where('`retry_count` <= ?', klass::RETRY_LIMIT)
-        .where('`updated_at` <= ?', 1.day.ago)
+        .where('retry_count <= ?', HibikiProgram::RETRY_LIMIT)
+        .where('updated_at <= ?', 1.day.ago)
         .lock
         .first
     end

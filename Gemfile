@@ -37,7 +37,11 @@ gem 'spring',        group: :development
 
 gem 'nokogiri'
 gem 'moji'
-gem 'mysql2'
+gem 'mysql2', '~> 0.3.17'
+gem 'activerecord-mysql-unsigned'
+gem 'activerecord-mysql-awesome'
+gem 'sqlite3'
+gem 'pg'
 gem 'chronic'
 gem 'whenever'
 gem 'settingslogic'

@@ -1,24 +1,19 @@
 class CreateOnsenProgram < ActiveRecord::Migration
   def up
-    sql = <<EOF
-CREATE TABLE `onsen_programs` (
-    `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
-    `title` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
-    `number` varchar(100) CHARACTER SET utf8mb4 NOT NULL,
-    `date` datetime NOT NULL,
-    `file_url` varchar(767) CHARACTER SET ASCII NOT NULL,
-    `personality` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
-    `state` varchar(100) CHARACTER SET ASCII NOT NULL,
-    `created_at` datetime NOT NULL,
-    `updated_at` datetime NOT NULL,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY (`file_url`)
-);
-EOF
-    ActiveRecord::Base.connection.execute(sql)
+    create_table 'onsen_programs', force: true, unsigned: true do |t|
+      t.column 'title',       :string,   null: false, limit: 250, charset: 'utf8mb4'
+      t.column 'number',      :string,   null: false, limit: 100, charset: 'utf8mb4'
+      t.column 'date',        :datetime, null: false
+      t.column 'file_url',    :string,   null: false, limit: 767, charset: 'ascii'
+      t.column 'personality', :string,   null: false, limit: 250, charset: 'utf8mb4'
+      t.column 'state',       :string,   null: false, limit: 100, charset: 'ascii'
+      t.timestamps null: false
+      
+      t.index 'file_url', unique: true, name: 'file_url'
+    end
   end
+  
   def down
-    sql = 'DROP TABLE `onsen_programs`;'
-    ActiveRecord::Base.connection.execute(sql)
+    drop_table 'onsen_programs'
   end
 end

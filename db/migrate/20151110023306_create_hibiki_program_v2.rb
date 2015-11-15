@@ -1,25 +1,19 @@
 class CreateHibikiProgramV2 < ActiveRecord::Migration
   def up
-    sql = <<EOF
-CREATE TABLE `hibiki_program_v2s` (
-    `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
-    `access_id` varchar(100) CHARACTER SET ASCII NOT NULL,
-    `episode_id` int UNSIGNED NOT NULL,
-    `title` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
-    `episode_name` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
-    `cast` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
-    `state` varchar(100) CHARACTER SET ASCII NOT NULL,
-    `retry_count` int UNSIGNED NOT NULL,
-    `created_at` datetime NOT NULL,
-    `updated_at` datetime NOT NULL,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY (`access_id`, `episode_id`)
-);
-EOF
-    ActiveRecord::Base.connection.execute(sql)
+    create_table 'hibiki_program_v2s', force: true, unsigned: true do |t|
+      t.column 'access_id',    :string,  null: false, limit: 100, charset: 'ascii'
+      t.column 'episode_id',   :integer, null: false, unsigned: true
+      t.column 'title',        :string,  null: false, limit: 250, charset: 'utf8mb4'
+      t.column 'episode_name', :string,  null: false, limit: 250, charset: 'utf8mb4'
+      t.column 'cast',         :string,  null: false, limit: 250, charset: 'utf8mb4'
+      t.column 'state',        :string,  null: false, limit: 100, charset: 'ascii'
+      t.column 'retry_count',  :integer, null: false, unsigned: true
+      t.timestamps null: false
+
+      t.index ['access_id', 'episode_id'], unique: true
+    end
   end
   def down
-    sql = 'DROP TABLE `hibiki_program_v2s`;'
-    ActiveRecord::Base.connection.execute(sql)
+    drop_table 'hibiki_program_v2s'
   end
 end

@@ -20,9 +20,12 @@ class Job < ActiveRecord::Base
       return
     end
 
+    adapter = ActiveRecord::Base.connection_config[:adapter].downcase
+    lock_clause = adapter == 'mysql2' ? 'LOCK IN SHARE MODE' : 'FOR SHARE'
+    
     ActiveRecord::Base.transaction do
       exsist_job = Job
-        .lock("LOCK IN SHARE MODE")
+        .lock(lock_clause)
         .find_by(
           ch: self.ch,
           start: self.start

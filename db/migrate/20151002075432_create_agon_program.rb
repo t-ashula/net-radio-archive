@@ -1,25 +1,20 @@
 class CreateAgonProgram < ActiveRecord::Migration
   def up
-    sql = <<EOF
-CREATE TABLE `agon_programs` (
-    `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
-    `title` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
-    `personality` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
-    `episode_id` varchar(250) CHARACTER SET ASCII NOT NULL,
-    `page_url` varchar(767) CHARACTER SET ASCII NOT NULL,
-    `state` varchar(100) CHARACTER SET ASCII NOT NULL,
-    `retry_count` int UNSIGNED NOT NULL,
-    `created_at` datetime NOT NULL,
-    `updated_at` datetime NOT NULL,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY (`episode_id`),
-    KEY (`page_url`)
-);
-EOF
-    ActiveRecord::Base.connection.execute(sql)
+    create_table 'agon_programs', force: true, unsigned: true do |t|
+      t.column 'title',       :string,  null: false, limit: 250, charset: 'utf8mb4'
+      t.column 'personality', :string,  null: false, limit: 250, charset: 'utf8mb4'
+      t.column 'episode_id',  :string,  null: false, limit: 250, charset: 'ascii'
+      t.column 'page_url',    :string,  null: false, limit: 767, charset: 'ascii'
+      t.column 'state',       :string,  null: false, limit: 100, charset: 'ascii'
+      t.column 'retry_count', :integer, null: false, unsigned: true
+      t.timestamps null: false
+
+      t.index 'episode_id', unique: true,  name: 'episode_id'
+      t.index 'page_url',   unique: false, name: 'page_url' 
+    end
   end
+
   def down
-    sql = 'DROP TABLE `agon_programs`;'
-    ActiveRecord::Base.connection.execute(sql)
+    drop_table 'agon_programs'
   end
 end
