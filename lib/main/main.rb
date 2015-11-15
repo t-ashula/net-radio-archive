@@ -1,9 +1,5 @@
 module Main
   class Main
-    def initialize
-      Rails.logger = Logger.new(STDOUT)
-    end
-
     def ag_scrape
       programs = Ag::Scraping.new.main
       programs.each do |p|
@@ -51,6 +47,7 @@ module Main
           p.file_url = program.file_url
           p.personality = program.personality
           p.state = OnsenProgram::STATE[:waiting]
+          p.retry_count = 0
           p.save
         end
       end
@@ -60,19 +57,21 @@ module Main
       program_list = Hibiki::Scraping.new.main
 
       program_list.each do |program|
-        if program.rtmp_url.blank?
-          next
-        end
         ActiveRecord::Base.transaction do
-          if HibikiProgram.where(rtmp_url: program.rtmp_url).first
+          if HibikiProgramV2
+              .where(access_id: program.access_id)
+              .where(episode_id: program.episode_id)
+              .first
             next
           end
 
-          p = HibikiProgram.new
+          p = HibikiProgramV2.new
+          p.access_id = program.access_id
+          p.episode_id = program.episode_id
           p.title = program.title
-          p.comment = program.comment
-          p.rtmp_url = program.rtmp_url
-          p.state = HibikiProgram::STATE[:waiting]
+          p.episode_name = program.episode_name
+          p.cast = program.cast
+          p.state = HibikiProgramV2::STATE[:waiting]
           p.retry_count = 0
           p.save
         end
@@ -225,129 +224,90 @@ module Main
     private
 
     def onsen_download
-      p = nil
-      ActiveRecord::Base.transaction do
-        p = OnsenProgram
-          .where(state: OnsenProgram::STATE[:waiting])
-          .lock
-          .first
-        unless p
-          return 0
-        end
-
-        p.state = OnsenProgram::STATE[:downloading]
-        p.save!
-      end
-
-      succeed = Onsen::Downloading.new.download(p)
-      p.state =
-        if succeed
-          OnsenProgram::STATE[:done]
-        else
-          OnsenProgram::STATE[:failed]
-        end
-      p.save!
-
-      return 0
+      download(OnsenProgram, Onsen::Downloading.new)
     end
 
     def hibiki_download
-      p = nil
-      ActiveRecord::Base.transaction do
-        p = hibiki_program_to_download
-        unless p
-          return 0
-        end
-
-        p.state = HibikiProgram::STATE[:downloading]
-        p.save!
-      end
-
-      succeed = Hibiki::Downloading.new.download(p)
-      p.state =
-        if succeed
-          HibikiProgram::STATE[:done]
-        else
-          HibikiProgram::STATE[:failed]
-        end
-      unless succeed
-        p.retry_count += 1
-        if p.retry_count > HibikiProgram::RETRY_LIMIT
-          Rails.logger.error "hibiki rec failed. exceeded retry_limit. #{p.id}: #{p.title}"
-        end
-      end
-      p.save!
-
-      return 0
+      download2(HibikiProgramV2, Hibiki::Downloading.new)
     end
 
     def anitama_download
-      p = nil
-      ActiveRecord::Base.transaction do
-        p = AnitamaProgram
-          .where(state: AnitamaProgram::STATE[:waiting])
-          .lock
-          .first
-        unless p
-          return 0
-        end
-
-        p.state = AnitamaProgram::STATE[:downloading]
-        p.save!
-      end
-
-      succeed = Anitama::Downloading.new.download(p)
-      p.state =
-        if succeed
-          AnitamaProgram::STATE[:done]
-        else
-          AnitamaProgram::STATE[:failed]
-        end
-      p.save!
-
-      return 0
+      download(AnitamaProgram, Anitama::Downloading.new)
     end
 
     def agon_download
       unless Settings.agon
         exit 0
       end
+      download(AgonProgram, Agon::Downloading.new)
+    end
 
+    def download(model_klass, downloader)
       p = nil
       ActiveRecord::Base.transaction do
-        p = AgonProgram
-          .where(state: AgonProgram::STATE[:waiting])
-          .lock
-          .first
+        p = fetch_downloadable_program(model_klass)
         unless p
           return 0
         end
 
-        p.state = AgonProgram::STATE[:downloading]
+        p.state = model_klass::STATE[:downloading]
         p.save!
       end
 
-      succeed = Agon::Downloading.new.download(p)
+      succeed = downloader.download(p)
       p.state =
         if succeed
-          AgonProgram::STATE[:done]
+          model_klass::STATE[:done]
         else
-          AgonProgram::STATE[:failed]
+          model_klass::STATE[:failed]
         end
+      unless succeed
+        p.retry_count += 1
+        if p.retry_count > model_klass::RETRY_LIMIT
+          Rails.logger.error "#{model_klass.name} rec failed. exceeded retry_limit. #{p.id}: #{p.title}"
+        end
+      end
       p.save!
 
       return 0
     end
 
-    def hibiki_program_to_download
-      p = HibikiProgram
-        .where(state: HibikiProgram::STATE[:waiting])
+    def download2(model_klass, downloader)
+      p = nil
+      ActiveRecord::Base.transaction do
+        p = fetch_downloadable_program(model_klass)
+        unless p
+          return 0
+        end
+
+        p.state = model_klass::STATE[:downloading]
+        p.save!
+      end
+
+      downloader.download(p)
+      if p.state == model_klass::STATE[:failed]
+        p.retry_count += 1
+        if p.retry_count > model_klass::RETRY_LIMIT
+          Rails.logger.error "#{model_klass.name} rec failed. exceeded retry_limit. #{p.id}: #{p.title}"
+        end
+      end
+      p.save!
+
+      return 0
+    end
+
+    def fetch_downloadable_program(klass)
+      p = klass
+        .where(state: klass::STATE[:waiting])
         .lock
         .first
       return p if p
 
-      HibikiProgram
-        .where(state: HibikiProgram::STATE[:failed])
+      klass
+        .where(state: [
+               klass::STATE[:failed],
+               klass::STATE[:downloading],
+        ])
         .where('retry_count <= ?', HibikiProgram::RETRY_LIMIT)
         .where('updated_at <= ?', 1.day.ago)
         .lock

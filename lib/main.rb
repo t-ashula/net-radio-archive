@@ -41,6 +41,7 @@ module Main
         end
       end
     end
+    true
   end
 
   def self.shell_exec(command)
@@ -51,15 +52,19 @@ module Main
 
   def self.ffmpeg(arg)
     exit_status, output = shell_exec('hash ffmpeg >/dev/null 2>&1')
-    if exit_status == 0 # found ffmpeg command
-      shell_exec("ffmpeg " + arg)
-    else
-      shell_exec("avconv " + arg)
-    end
+    # found ffmpeg command or not
+    command = exit_status == 0 ? 'ffmpeg' : 'avconv'
+    full = "#{command} #{arg} 2>&1"
+    shell_exec(full)
   end
 
   def self.convert_ffmpeg_to_mp4(src_path, dst_path, debug_obj)
     arg = "-loglevel error -y -i #{Shellwords.escape(src_path)} -acodec copy -vcodec copy #{Shellwords.escape(dst_path)}"
+    convert_ffmpeg_to(arg, debug_obj)
+  end
+
+  def self.convert_ffmpeg_to_mp4_with_blank_video(src_path, dst_path, debug_obj)
+    arg = "-loglevel error -y -s 320x240 -f rawvideo -pix_fmt rgb24 -r 1 -i /dev/zero -i #{Shellwords.escape(src_path)} -acodec copy -vcodec libx264 -shortest #{Shellwords.escape(dst_path)}"
     convert_ffmpeg_to(arg, debug_obj)
   end
 
@@ -70,9 +75,13 @@ module Main
 
   def self.convert_ffmpeg_to(arg, debug_obj)
     exit_status, output = ffmpeg(arg)
+    Rails.logger.info(output)
     unless exit_status.success?
       Rails.logger.error "convert failed. debug_obj:#{debug_obj.inspect}, exit_status:#{exit_status}, output:#{output}"
       return false
+    end
+    if output.present?
+      Rails.logger.warn "ffmpeg command:#{arg} output:#{output}"
     end
     true
   end
@@ -137,7 +146,7 @@ module Main
     date.strftime('%Y%m')
   end
 
-  def self.check_file_size(path, expect_larger_than = (10 * 1024 * 1024)) # 10MB
+  def self.check_file_size(path, expect_larger_than = (20 * 1024 * 1024)) # 20MB
     size = File.size?(path)
     size && size > expect_larger_than
   end
