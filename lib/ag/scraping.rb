@@ -147,6 +147,9 @@ module Ag
       start_time = parse_start_time(td, wday)
       minutes = parse_minutes(td)
       title = parse_title(td)
+      if td['class'] !~ /bg-[fl]/ && title != '放送休止'
+        title += " 再" # " \u{1F21E}"
+      end
       Program.new(start_time, minutes, title)
     end
 
