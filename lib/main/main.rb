@@ -28,6 +28,20 @@ module Main
       end
     end
 
+    def radiru_scrape
+      Settings.radiru_channels.each do |ch|
+        programs = Radiru::Scraping.new.get(ch)
+        programs.each do |p|
+          Job.new(
+            ch: ch,
+            title: p.title,
+            start: p.start_time,
+            end: p.end_time
+          ).schedule
+        end
+      end
+    end
+
     def onsen_scrape
       program_list = Onsen::Scraping.new.main
 
@@ -171,6 +185,8 @@ module Main
       succeed = false
       if job.ch == Job::CH[:ag]
         succeed = Ag::Recording.new.record(job)
+      elsif Settings.radiru_channels.include?(job.ch)
+        succeed = Radiru::Recording.new.record(job)
       else
         succeed = Radiko::Recording.new.record(job)
       end
@@ -275,7 +291,10 @@ module Main
     def download2(model_klass, downloader)
       p = nil
       ActiveRecord::Base.transaction do
-        p = fetch_downloadable_program(model_klass)
+        # Hibikiで古いデータのキャッシュが残っているのかepisode_idが一致せず
+        # outdatedと誤判定してしまうケースがあった
+        # 対策として時間を置くことでprograms APIと各個別program APIのepisode_idが一致すること狙う
+        p = fetch_downloadable_program(model_klass, 30.minutes.ago)
         unless p
           return 0
         end
@@ -296,9 +315,13 @@ module Main
       return 0
     end
 
-    def fetch_downloadable_program(klass)
+    def fetch_downloadable_program(klass, older_than = nil)
       p = klass
         .where(state: klass::STATE[:waiting])
+      if older_than
+        p = p.where('`created_at` <= ?', older_than)
+      end
+      p = p
         .lock
         .first
       return p if p

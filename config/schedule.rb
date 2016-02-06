@@ -17,7 +17,7 @@ end
 
 #=== nico
 # maintenance on Thursday
-every '50 * * * 0-4,6-7' do
+every '50 * * * 0-3,5-6' do
   rake_not_silent 'main:niconama_scrape'
 end
 every '50 12-23 * * 5' do
@@ -47,6 +47,10 @@ end
 
 every '12 * * * *' do
   rake_not_silent 'main:radiko_scrape'
+end
+
+every '5 * * * *' do
+  rake_not_silent 'main:radiru_scrape'
 end
 
 every '17 10-22 * * *' do
