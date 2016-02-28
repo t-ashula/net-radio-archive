@@ -165,38 +165,68 @@ module Main
       end
     end
 
+    def wikipedia_scrape
+      unless Settings.niconico && Settings.niconico.live.keyword_wikipedia_categories
+        exit 0
+      end
+
+      Settings.niconico.live.keyword_wikipedia_categories.each do |category|
+        items = Wikipedia::Scraping.new.main(category)
+        items = items.map do |item|
+          [category, item]
+        end
+        WikipediaCategoryItem.import(
+          [:category, :title],
+          items,
+          on_duplicate_key_update: [:title]
+        )
+      end
+    end
+
     def rec_one
-      job = nil
-      ActiveRecord::Base.transaction do
-        job = Job
-          .where({ start: (2.minutes.ago)..(5.minutes.from_now) })
-          .where(state: Job::STATE[:scheduled])
-          .order(:start)
-          .lock
-          .first
-        unless job
-          return 0
+      jobs = nil
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          jobs = Job
+            .where({ start: (2.minutes.ago)..(5.minutes.from_now) })
+            .where(state: Job::STATE[:scheduled])
+            .order(:start)
+            .lock
+            .all
+          if jobs.empty?
+            return 0
+          end
+          jobs.each do |j|
+            j.state = Job::STATE[:recording]
+            j.save!
+          end
         end
-
-        job.state = Job::STATE[:recording]
-        job.save!
       end
 
-      succeed = false
-      if job.ch == Job::CH[:ag]
-        succeed = Ag::Recording.new.record(job)
-      elsif Settings.radiru_channels.include?(job.ch)
-        succeed = Radiru::Recording.new.record(job)
-      else
-        succeed = Radiko::Recording.new.record(job)
-      end
-      job.state =
-        if succeed
-          Job::STATE[:done]
+      threads_from_records(jobs) do |j|
+        Rails.logger.info "rec thread created. job:#{j.id}"
+
+        succeed = false
+        if j.ch == Job::CH[:ag]
+          succeed = Ag::Recording.new.record(j)
+        elsif Settings.radiru_channels && Settings.radiru_channels.include?(j.ch)
+          succeed = Radiru::Recording.new.record(j)
         else
-          Job::STATE[:failed]
+          succeed = Radiko::Recording.new.record(j)
         end
-      job.save!
+
+        ActiveRecord::Base.connection_pool.with_connection do
+          j.state =
+            if succeed
+              Job::STATE[:done]
+            else
+              Job::STATE[:failed]
+            end
+          j.save!
+        end
+
+        Rails.logger.info "rec thread end. job:#{j.id}"
+      end
 
       return 0
     end
@@ -208,9 +238,24 @@ module Main
       agon_download
     end
 
+    LOCK_NICONAMA_DOWNLOAD = 'lock_niconama_download'
     def niconama_download
       unless Settings.niconico
-        exit 0
+        return 0
+      end
+      ActiveRecord::Base.transaction do
+        l = KeyValue.where(key: LOCK_NICONAMA_DOWNLOAD).lock.first
+        if !l
+          l = KeyValue.new
+          l.key = LOCK_NICONAMA_DOWNLOAD
+          l.value = 'true'
+          l.save!
+        elsif l.value == 'false'
+          l.value = 'true'
+          l.save!
+        else
+          return 0
+        end
       end
 
       p = nil
@@ -234,10 +279,34 @@ module Main
       NiconicoLive::Downloading.new.download(p)
       p.save!
 
+      ActiveRecord::Base.transaction do
+        l = KeyValue.lock.find(LOCK_NICONAMA_DOWNLOAD)
+        l.value = 'false'
+        l.save!
+      end
+
       return 0
     end
 
     private
+
+    def threads_from_records(records)
+      thread_array = []
+      records.each do |record|
+        thread_array << Thread.start(record) do |r|
+          begin
+            yield r
+          rescue => e
+            Rails.logger.error %W|#{e.class}\n#{e.inspect}\n#{e.backtrace.join("\n")}|
+          end
+        end
+        sleep 1
+      end
+
+      thread_array.each do |th|
+        th.join
+      end
+    end
 
     def onsen_download
       download(OnsenProgram, Onsen::Downloading.new)

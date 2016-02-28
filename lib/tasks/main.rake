@@ -34,13 +34,14 @@ namespace :main do
     Main::Main.new.niconama_scrape
   end
 
-  desc 'wikipedia scape'
-  task :wikipedia_scrape => :environment do
-  end
-
   desc 'agon scrape'
   task :agon_scrape => :environment do
     Main::Main.new.agon_scrape
+  end
+
+  desc 'wikipedia scape'
+  task :wikipedia_scrape => :environment do
+    Main::Main.new.wikipedia_scrape
   end
 
   desc 'rec one'
