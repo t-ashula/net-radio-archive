@@ -195,7 +195,6 @@ module Main
             .where({ start: (2.minutes.ago)..(5.minutes.from_now) })
             .where(state: Job::STATE[:scheduled])
             .order(:start)
-            .lock
             .all
           if jobs.empty?
             return 0
