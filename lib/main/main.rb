@@ -393,7 +393,7 @@ module Main
       p = klass
         .where(state: klass::STATE[:waiting])
       if older_than
-        p = p.where('`created_at` <= ?', older_than)
+        p = p.where('created_at <= ?', older_than)
       end
       p = p
         .lock
@@ -405,7 +405,7 @@ module Main
                klass::STATE[:failed],
                klass::STATE[:downloading],
         ])
-        .where('retry_count <= ?', HibikiProgram::RETRY_LIMIT)
+        .where('retry_count <= ?', klass::RETRY_LIMIT)
         .where('updated_at <= ?', 1.day.ago)
         .lock
         .first
