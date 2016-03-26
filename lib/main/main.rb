@@ -128,12 +128,13 @@ module Main
 
       program_list.each do |program|
         ActiveRecord::Base.transaction do
-          if NiconicoLiveProgram.where(id: program.id).first
+          lvid = program.id.gsub(/^lv/,"")
+          if NiconicoLiveProgram.where(id: lvid).first
             next
           end
 
           p = NiconicoLiveProgram.new
-          p.id = program.id
+          p.id = lvid
           p.title = program.title
           p.state = NiconicoLiveProgram::STATE[:waiting]
           p.cannot_recovery = false
