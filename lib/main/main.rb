@@ -189,22 +189,23 @@ module Main
     end
 
     def rec_one
-      jobs = nil
+      jobs = []
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           jobs = Job
             .where({ start: (2.minutes.ago)..(5.minutes.from_now) })
             .where(state: Job::STATE[:scheduled])
             .order(:start)
+            .lock!
             .all
-          if jobs.empty?
-            return 0
-          end
           jobs.each do |j|
             j.state = Job::STATE[:recording]
             j.save!
           end
         end
+      end
+      if jobs.empty?
+        return 0
       end
 
       threads_from_records(jobs) do |j|
