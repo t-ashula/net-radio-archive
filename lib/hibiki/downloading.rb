@@ -12,13 +12,14 @@ module Hibiki
 
     def download(program)
       infos = get_infos(program)
-      if infos['episode']['id'] != program.episode_id
-        Rails.logger.error("episode outdated. title=#{program.title} expected_episode_id=#{program.episode_id} actual_episode_id=#{infos['episode']['id']}")
+      ep = infos['episode']
+      if !ep || ep['id'] != program.episode_id
+        Rails.logger.error("episode outdated. title=#{program.title} expected_episode_id=#{program.episode_id} actual_episode_id=#{ep && ep['id']}")
         program.state = HibikiProgramV2::STATE[:outdated]
         return
       end
       live_flg = infos['episode'].try(:[], 'video').try(:[], 'live_flg')
-      if live_flg == nil || live_flg == true
+      if live_flg.nil? || live_flg == true
         program.state = HibikiProgramV2::STATE[:not_downloadable]
         return
       end
@@ -53,9 +54,10 @@ module Hibiki
       Main::prepare_working_dir(CH_NAME)
       exit_status, output = Main::ffmpeg(arg)
       unless exit_status.success?
-        Rails.logger.error "rec failed. program:#{program}, exit_status:#{exit_status}, output:#{output}"
+        Rails.logger.error "rec failed. program:#{program}, exit_status:#{exit_status}, output:#{output}, arg:#{arg}"
         return false
       end
+
       if output.present?
         Rails.logger.warn "hibiki ffmpeg command:#{arg} output:#{output}"
       end
@@ -69,7 +71,7 @@ module Hibiki
       @a.get(
         url,
         [],
-        "http://hibiki-radio.jp/",
+        'http://hibiki-radio.jp/',
         'X-Requested-With' => 'XMLHttpRequest',
         'Origin' => 'http://hibiki-radio.jp'
       )
