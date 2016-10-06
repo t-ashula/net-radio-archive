@@ -13,7 +13,9 @@ module Ag
 
     # convert human friendly time to computer friendly time
     def self.parse(wday, time_str)
-      time = Time.parse(time_str)
+      t = time_str.gsub(/[\r\n]/, '').gsub(/ .*$/, '')
+      t = t.gsub(/^(\d\d)/) { |m| format('%02d', (m.to_i - 24)) } if t > '24:00'
+      time = Time.parse(t)
       if time.hour < SAME_DAY_LINE_HOUR
         wday = (wday + 1) % 7
       end
@@ -22,11 +24,8 @@ module Ag
 
     def next_on_air
       time = chronic(wday_for_chronic_include_today(self[:wday]))
-      if time > Time.now
-        return time
-      else
-        chronic(wday_to_s(self[:wday]))
-      end
+      return time if time > Time.now
+      chronic(wday_to_s(self[:wday]))
     end
 
     def chronic(day_str)
@@ -40,9 +39,7 @@ module Ag
     end
 
     def wday_for_chronic_include_today(wday)
-      if Time.now.wday == wday
-        return 'today'
-      end
+      return 'today' if Time.now.wday == wday
       wday_to_s(wday)
     end
 
@@ -60,14 +57,13 @@ module Ag
 
     def validate_programs(programs)
       if programs.size < 20
-        puts "Error: Number of programs is too few!"
+        puts 'Error: Number of programs is too few!'
         exit
       end
       programs.delete_if do |program|
         program.title == '放送休止'
       end
     end
-
 
     def scraping_page
       res = HTTParty.get('http://www.agqr.jp/timetable/streaming.html')
@@ -148,7 +144,7 @@ module Ag
       minutes = parse_minutes(td)
       title = parse_title(td)
       if td['class'] !~ /bg-[fl]/ && title != '放送休止'
-        title += " 再" # " \u{1F21E}"
+        title += ' 再' # " \u{1F21E}"
       end
       Program.new(start_time, minutes, title)
     end
@@ -158,7 +154,7 @@ module Ag
       if !rowspan || rowspan.value.blank?
         30
       else
-        td.attribute('rowspan').value.to_i * 30
+        td.attribute('rowspan').value.to_i
       end
     end
 
@@ -167,11 +163,7 @@ module Ag
     end
 
     def parse_title(td)
-      [td.css('.title-p')[0].text, td.css('.rp')[0].text].select do |text|
-        !text.gsub(/\s/, '').empty?
-      end.map do |text|
-        Moji.normalize_zen_han(text).strip
-      end.join(' ')
+      [td.css('.title-p')[0].text, td.css('.rp')[0].text].select { |text| !text.gsub(/\s/, '').empty? }.map { |text| Moji.normalize_zen_han(text).strip }.join(' ')
     end
   end
 end
