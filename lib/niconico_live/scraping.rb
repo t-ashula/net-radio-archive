@@ -19,9 +19,7 @@ module NiconicoLive
     def search_keyword_category_bulk
       ret = []
       WikipediaCategoryItem.find_in_batches(batch_size: 10).each do |batches|
-        search_word = batches.map do |item|
-          item.title
-        end.join(' OR ')
+        search_word = batches.map(&:title).join(' OR ')
         ret_sub = search([search_word])
         ret += ret_sub
         sleep 10
@@ -38,6 +36,7 @@ module NiconicoLive
             Niconico::Live::Client::SearchFilters::OFFICIAL,
             Niconico::Live::Client::SearchFilters::CHANNEL,
             Niconico::Live::Client::SearchFilters::HIDE_TS_EXPIRED,
+            Niconico::Live::Client::SearchFilters::NO_COMMUNITY_GROUP
           ]
         )
         ret + ret_sub
@@ -46,9 +45,7 @@ module NiconicoLive
 
     def reject_ignore_keywords(search_results)
       ignore_keywords = Settings.niconico.live.ignore_keywords
-      unless ignore_keywords
-        return search_results
-      end
+      return search_results unless ignore_keywords
       search_results.reject do |r|
         ignore_keywords.any? do |k|
           r.title.include? k
