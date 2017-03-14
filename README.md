@@ -12,6 +12,8 @@ Net Radio Archive
 - 音泉
 - アニたま
 - AG-ON
+- らじる(NHK)
+- ニコ生（ニコニコ生放送）
 
 ## 特徴
 「全部の番組」を取ります。
@@ -24,22 +26,32 @@ Net Radio Archive
 ## 必要なもの
 - 常時起動しているマシン
 - LinuxなどUNIX的なOS (Windowsでも動かしたい...)
-- Ruby 2.0 or higher
+- Ruby 2.3 (2.4未対応です。対応してくれるpull req募集中)
 - rtmpdump
 - swftools
 - あたらしめのffmpeg (HTTP Live Streaming の input に対応しているもの)
  - ※最新のffmpegの導入は面倒であることが多いです。自分はLinuxではstatic buildを使っています。 http://qiita.com/yayugu/items/d7f6a15a6f988064f51c
  - Macではhomebrewで導入できるバージョンで問題ありません
 - (AG-ONのみ)
+ - AG-ONのアカウント
  - GUI環境 or xvfb
  - firefox
+ - Geckodriver
+- (ニコ生のみ)
+ - プレミアム会員のアカウント
 
 ## セットアップ
 
 ```
 # 必要なライブラリをインストール
 # Ubuntuの場合:
-$ sudo apt-get install rtmpdump swftools ruby
+$ # Mysqlは5.6以外でも可
+$ # Ubuntu 14.04だとrubyのversionが古いのでお好きな方法orこの辺(https://www.brightbox.com/blog/2016/01/06/ruby-2-3-ubuntu-packages/ ) を参考に新しめなバージョンをインストールしてください
+$ sudo apt-get install rtmpdump swftools ruby git mysql-server-5.6 mysql-client-5.6 libmysqld-dev
+$ sudo service mysql start # WSLだとっぽい表示がでるかもしれませんがプロセスが起動していればOK
+$ 
+$ # (以下はAG-ONが必要のみ)
+$ sudo apt-get install xvfb firefox
 
 $ # libavがインストールされている場合には削除してから
 $ wget http://johnvansickle.com/ffmpeg/releases/ffmpeg-release-64bit-static.tar.xz
@@ -59,15 +71,15 @@ $ vi config/settings.yml # 各自の環境に合わせて編集
 
 # サーバー内での手動設定 (お手軽、自分はこれでやってます)
 $ RAILS_ENV=production bundle exec rake db:create db:migrate
-$ bundle exec whenever --update-crontab
-$ # (または) bundle exec whenever -u $YOUR-USERNAME --update-crontab
+$ RAILS_ENV=production bundle exec whenever --update-crontab
+$ # (または) RAILS_ENV=production bundle exec whenever -u $YOUR-USERNAME --update-crontab
 
 # アップデート
 $ git pull origin master
 $ git submodule update --init --recursive
 $ bundle install --without development test
 $ RAILS_ENV=production bundle exec rake db:migrate
-$ bundle exec whenever --update-crontab
+$ RAILS_ENV=production bundle exec whenever --update-crontab
 
 # capistranoでのデプロイ設定
 $ cp config/deploy/production.example.rb config/deploy/production.rb
@@ -95,9 +107,28 @@ http://d.hatena.ne.jp/zariganitosh/20130214/radiko_keyword_preset
 
 ### Q. AG-ONをうまく動かせない
 A. 難しいです。Githubでissueつくっていただければ相談にのりますのでお気軽にどうぞ。
+
 もしくはSeleniumを使わないように修正していただけるpull req募集中
 
 ### Q. rtmpdumpが不安定 / CPUを100%消費する
 gitで最新のソースを取得してきてビルドすると改善することが多いです。
 
 http://qiita.com/yayugu/items/12c0ffd92bc8539098b8
+
+### Q. 録画がはじまらない / 特定のプラットフォーム or 局のみ録画がはじまらない
+番組表の取得がまだ行われていない可能性があります。 config/schedule.rbを見ていただけるとわかるのですが番組表の取得は昼間中心となっています。お急ぎの場合は手動で
+
+```
+$ RAILS_ENV=production bundle exec rake main:XXXX_scrape
+```
+
+を実行してください
+
+### Q. ニコ生の動作がいまいち
+ニコ生については色々制約が多いです
+- プレミアム会員必須
+- タイムシフトから取得するためタイムシフトに対応していない番組は対応不可
+- コメントはいまのところ取得できない
+- さまざまな理由でダウンロードに失敗することがある
+
+改善のpull reqお待ちしております

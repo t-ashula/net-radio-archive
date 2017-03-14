@@ -5,7 +5,7 @@
 #
 # Learn more: http://github.com/javan/whenever
 
-job_type :rake_not_silent, 'export PATH=/usr/local/bin:$PATH; export LANG=en_US.UTF-8; cd :path && :environment_variable=:environment bundle exec rake :task :output'
+job_type :rake_not_silent, 'sleep $[ ( $RANDOM % 30 )  + 1 ]s; export PATH=/usr/local/bin:$PATH; export LANG=en_US.UTF-8; cd :path && :environment_variable=:environment bundle exec rake :task :output'
 
 every 1.minute do
   rake_not_silent 'main:rec_one'
@@ -17,18 +17,15 @@ end
 
 #=== nico
 # maintenance on Thursday
-every '50 * * * 0-4,6-7' do
-  rake_not_silent 'main:niconama_scrape'
-end
-every '50 12-23 * * 5' do
+every '0 14 * * *' do
   rake_not_silent 'main:niconama_scrape'
 end
 
 # maintenance on Thursday
-every '4-50/18 * * * 0-4,6-7' do
+every '4-58 * * * 0-3,5-6' do
   rake_not_silent 'main:rec_niconama'
 end
-every '4-50/18 12-23 * * 5' do
+every '4-58 12-23 * * 4' do
   rake_not_silent 'main:rec_niconama'
 end
 #===
@@ -49,12 +46,20 @@ every '12 * * * *' do
   rake_not_silent 'main:radiko_scrape'
 end
 
+every '5 * * * *' do
+  rake_not_silent 'main:radiru_scrape'
+end
+
 every '17 10-22 * * *' do
   rake_not_silent 'main:anitama_scrape'
 end
 
 every '21 10-22 * * *' do
   rake_not_silent 'main:agon_scrape'
+end
+
+every '38 15 1 * *' do
+  rake_not_silent 'main:wikipedia_scrape'
 end
 
 every '37 15 * * *' do

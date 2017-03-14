@@ -26,7 +26,8 @@ module Main
 
   def self.download(url, filename)
     uri = URI(url)
-    Net::HTTP.start(uri.host, uri.port) do |http|
+    use_ssl = uri.scheme == 'https'
+    Net::HTTP.start(uri.host, uri.port, :use_ssl => use_ssl) do |http|
       request = Net::HTTP::Get.new(uri.request_uri)
       http.request(request) do |response|
         open(filename, 'wb') do |io|
@@ -75,7 +76,9 @@ module Main
 
   def self.convert_ffmpeg_to(arg, debug_obj)
     exit_status, output = ffmpeg(arg)
-    Rails.logger.info(output)
+    unless output.empty?
+      Rails.logger.info(output)
+    end
     unless exit_status.success?
       Rails.logger.error "convert failed. debug_obj:#{debug_obj.inspect}, exit_status:#{exit_status}, output:#{output}"
       return false
@@ -108,6 +111,18 @@ module Main
     FileUtils.mkdir_p(latest_dir)
     unless File.exist?(latest_symlink)
       FileUtils.ln_s(dst, latest_symlink)
+    end
+
+    # create selections symlink
+    if Settings.selections.present?
+      if Settings.selections.any? {|s| !!filename.match(s) }
+        selection_dir = "#{Settings.archive_dir}/0_selections"
+        selection_symlink = "#{selection_dir}/#{filename}"
+        FileUtils.mkdir_p(selection_dir)
+        unless File.exist?(selection_symlink)
+          FileUtils.ln_s(dst, selection_symlink)
+        end
+      end
     end
   end
 
