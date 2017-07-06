@@ -51,13 +51,10 @@ module Main
       program_list = Onsen::Scraping.new.main
 
       program_list.each do |program|
-        if program.update_date.blank? || program.file_url.blank?
-          next
-        end
+        next if program.update_date.blank? || program.file_url.blank?
+
         ActiveRecord::Base.transaction do
-          if OnsenProgram.where(file_url: program.file_url).first
-            next
-          end
+          next if OnsenProgram.where(file_url: program.file_url).first
 
           p = OnsenProgram.new
           p.title = program.title
@@ -130,9 +127,7 @@ module Main
       program_list.each do |program|
         ActiveRecord::Base.transaction do
           lvid = program.id.gsub(/^lv/,"")
-          if NiconicoLiveProgram.where(id: lvid).first
-            next
-          end
+          next if NiconicoLiveProgram.where(id: lvid).first
 
           p = NiconicoLiveProgram.new
           p.id = lvid
@@ -147,17 +142,13 @@ module Main
     end
 
     def agon_scrape
-      unless Settings.agon
-        exit 0
-      end
+      exit 0 unless Settings.agon
 
       program_list = Agon::Scraping.new.main
 
       program_list.each do |program|
         ActiveRecord::Base.transaction do
-          if AgonProgram.where(episode_id: program.episode_id).first
-            next
-          end
+          next if AgonProgram.where(episode_id: program.episode_id).first
 
           p = AgonProgram.new
           p.title = program.title
@@ -172,17 +163,13 @@ module Main
     end
 
     def agonp_scrape
-      unless Settings.agonp
-        exit 0
-      end
+      return 0 unless Settings.agonp
 
       program_list = Agonp::Scraping.new.main
 
       program_list.each do |program|
         ActiveRecord::Base.transaction do
-          if AgonpProgram.where(episode_id: program.episode_id).first
-            next
-          end
+          next if AgonpProgram.where(episode_id: program.episode_id).first
 
           p = AgonpProgram.new
           p.title = program.title
@@ -230,13 +217,9 @@ module Main
           end
         end
       end
-      if jobs.empty?
-        return 0
-      end
 
-      if jobs.empty?
-        return 0
-      end
+      return 0 if jobs.empty?
+      return 0 if jobs.empty?
 
       threads_from_records(jobs) do |j|
         Rails.logger.debug "rec thread created. job:#{j.id}"
@@ -263,7 +246,7 @@ module Main
         Rails.logger.debug "rec thread end. job:#{j.id}"
       end
 
-      return 0
+      0
     end
 
     def rec_ondemand
@@ -276,9 +259,8 @@ module Main
 
     LOCK_NICONAMA_DOWNLOAD = 'lock_niconama_download'
     def niconama_download
-      unless Settings.niconico
-        return 0
-      end
+      return 0 unless Settings.niconico
+
       ActiveRecord::Base.transaction do
         l = KeyValue.where(key: LOCK_NICONAMA_DOWNLOAD).lock.first
         if !l
@@ -323,7 +305,7 @@ module Main
         l.save!
       end
 
-      return 0
+      0
     end
 
     private
@@ -359,16 +341,12 @@ module Main
     end
 
     def agon_download
-      unless Settings.agon
-        exit 0
-      end
+      return 0 unless Settings.agon
       download(AgonProgram, Agon::Downloading.new)
     end
 
     def agonp_download
-      unless Settings.agonp
-        exit 0
-      end
+      return unless Settings.agonp
       download(AgonpProgram, Agonp::Downloading.new)
     end
 
@@ -376,9 +354,7 @@ module Main
       p = nil
       ActiveRecord::Base.transaction do
         p = fetch_downloadable_program(model_klass)
-        unless p
-          return 0
-        end
+        return 0 unless p
 
         p.state = model_klass::STATE[:downloading]
         p.save!
@@ -404,7 +380,7 @@ module Main
       end
       p.save!
 
-      return 0
+      0
     end
 
     def download2(model_klass, downloader)
@@ -414,9 +390,7 @@ module Main
         # outdatedと誤判定してしまうケースがあった
         # 対策として時間を置くことでprograms APIと各個別program APIのepisode_idが一致すること狙う
         p = fetch_downloadable_program(model_klass, 30.minutes.ago)
-        unless p
-          return 0
-        end
+        return 0 unless p
 
         p.state = model_klass::STATE[:downloading]
         p.save!
@@ -431,25 +405,20 @@ module Main
       end
       p.save!
 
-      return 0
+      0
     end
 
     def fetch_downloadable_program(klass, older_than = nil)
-      p = klass
-        .where(state: klass::STATE[:waiting])
-      if older_than
-        p = p.where('created_at <= ?', older_than)
-      end
-      p = p
-        .lock
-        .first
+      p = klass.where(state: klass::STATE[:waiting])
+      p = p.where('created_at <= ?', older_than) if older_than
+      p = p.first
       return p if p
 
       klass
         .where(state: [
-               klass::STATE[:failed],
-               klass::STATE[:downloading],
-        ])
+                 klass::STATE[:failed],
+                 klass::STATE[:downloading],
+               ])
         .where('retry_count <= ?', klass::RETRY_LIMIT)
         .where('updated_at <= ?', 1.day.ago)
         .lock

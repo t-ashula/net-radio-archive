@@ -55,6 +55,7 @@ module Onsen
         'code' => code,
         'file_name' => "regular_1"
       )
+
       unless res.kind_of?(Net::HTTPSuccess)
         Rails.logger.error "onsen scraping error: #{url}, #{res.code}"
       end
