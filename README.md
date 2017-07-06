@@ -12,6 +12,7 @@ Net Radio Archive
 - 音泉
 - アニたま
 - AG-ON
+- AG-ON Premium
 - らじる(NHK)
 - ニコ生（ニコニコ生放送）
 
@@ -25,22 +26,25 @@ Net Radio Archive
 
 ## 必要なもの
 - 常時起動しているマシン
-- LinuxなどUNIX的なOS (Windowsでも動かしたい...)
+- LinuxなどUNIX的なOS
+  - WindowsでもBash on Windows / Windows Subsystem for Linuxなら動きますがcronに依存しており、WSLではcronを動かすのが少し手間です
 - Ruby 2.3 (2.4未対応です。対応してくれるpull req募集中)
 - rtmpdump
 - swftools
 - あたらしめのffmpeg (HTTP Live Streaming の input に対応しているもの)
- - ※最新のffmpegの導入は面倒であることが多いです。自分はLinuxではstatic buildを使っています。 http://qiita.com/yayugu/items/d7f6a15a6f988064f51c
- - Macではhomebrewで導入できるバージョンで問題ありません
+  - ※最新のffmpegの導入は面倒であることが多いです。自分はLinuxではstatic buildを使っています。 http://qiita.com/yayugu/items/d7f6a15a6f988064f51c
+  - Macではhomebrewで導入できるバージョンで問題ありません
 - (AG-ONのみ)
- - AG-ONのアカウント
- - GUI環境 or xvfb
- - firefox
- - Geckodriver
+  - AG-ONのアカウント
+  - GUI環境 or xvfb
+  - firefox
+  - Geckodriver
 - (ニコ生のみ)
- - プレミアム会員のアカウント
+  - プレミアム会員のアカウント
 
 ## セットアップ
+
+### ふつうにセットアップ
 
 ```
 # 必要なライブラリをインストール
@@ -49,7 +53,7 @@ $ # Mysqlは5.6以外でも可
 $ # Ubuntu 14.04だとrubyのversionが古いのでお好きな方法orこの辺(https://www.brightbox.com/blog/2016/01/06/ruby-2-3-ubuntu-packages/ ) を参考に新しめなバージョンをインストールしてください
 $ sudo apt-get install rtmpdump swftools ruby git mysql-server-5.6 mysql-client-5.6 libmysqld-dev
 $ sudo service mysql start # WSLだとっぽい表示がでるかもしれませんがプロセスが起動していればOK
-$ 
+
 $ # (以下はAG-ONが必要のみ)
 $ sudo apt-get install xvfb firefox
 
@@ -60,7 +64,6 @@ $ sudo cp ./ffmpeg-release-64bit-static/ffmpeg /usr/local/bin
 
 $ git clone https://github.com/yayugu/net-radio-archive.git
 $ cd net-radio-archive
-$ git submodule update --init --recursive
 $ (sudo) gem install bundler
 $ bundle install --without development test
 $ # AG-ONを使用しない場合は `agon` も加えることでSeleniumのインストールをスキップできます
@@ -68,8 +71,6 @@ $ cp config/database.example.yml config/database.yml
 $ cp config/settings.example.yml config/settings.yml
 $ vi config/database.yml # 各自の環境に合わせて編集
 $ vi config/settings.yml # 各自の環境に合わせて編集
-
-# サーバー内での手動設定 (お手軽、自分はこれでやってます)
 $ RAILS_ENV=production bundle exec rake db:create db:migrate
 $ RAILS_ENV=production bundle exec whenever --update-crontab
 $ # (または) RAILS_ENV=production bundle exec whenever -u $YOUR-USERNAME --update-crontab
@@ -81,15 +82,52 @@ $ bundle install --without development test
 $ RAILS_ENV=production bundle exec rake db:migrate
 $ RAILS_ENV=production bundle exec whenever --update-crontab
 
-# capistranoでのデプロイ設定
-$ cp config/deploy/production.example.rb config/deploy/production.rb
-$ vi config/deploy/production.rb # 各自の環境に合わせて編集
-$ bundle exec cap production deploy
 ```
 
 cronに
 `MAILTO='your-mail-address@foo.com'`
 のように記述してエラーが起きた時に検知しやすくしておくと便利です。
+
+
+### Dockerでセットアップ
+Dockerの知識がある程度必要ですがわかっていれば楽です。
+
+まずMySQLサーバーを用意してください。
+ローカル用意してもdocker-composeとかで建ててもなんでもいいです
+そしてDockerコンテナからそのMySQLに疎通できるようにしておいてください
+
+```
+$ git clone https://github.com/yayugu/net-radio-archive.git
+$ cd net-radio-archive
+
+$ cp config/database.example.yml config/database.yml
+$ cp config/settings.example.yml config/settings.yml
+$ vi config/database.yml # 各自の環境に合わせて編集
+$ vi config/settings.yml # 各自の環境に合わせて編集
+
+$ docker build --network host -t yayugu/net-radio-archive .
+
+# 起動
+# いくつかのディレクトリはホストのものを使うことを推奨しています
+# /working : 作業用ディレクトリです。それなりに容量を消費します
+# /archive : 録画したファイルが置かれるディレクトリです。大事
+# /myapp/log : ログが置かれるディレクトリです
+$ docker run -d --rm --network host \
+  -v /host/path/to/working/dir:/working \
+  -v /host/path/to/archive/dir:/archive \
+  -v /host/path/to/log:/myapp/log \
+  yayugu/net-radio-archive
+
+# 長期運用する場合はlogrotateを入れておきましょう
+$ cat /etc/logrotate.d/net-radio-archive
+/host/path/to/log/*.log {
+    daily
+    missingok
+    rotate 7
+    notifempty
+    copytruncate
+}
+```
 
 ## FAQ
 
@@ -106,9 +144,17 @@ A. Radikoはアクセスする側のIPによってどの局を聴けるかが変
 http://d.hatena.ne.jp/zariganitosh/20130214/radiko_keyword_preset
 
 ### Q. AG-ONをうまく動かせない
-A. 難しいです。Githubでissueつくっていただければ相談にのりますのでお気軽にどうぞ。
+~~A. 難しいです。Githubでissueつくっていただければ相談にのりますのでお気軽にどうぞ。~~
 
-もしくはSeleniumを使わないように修正していただけるpull req募集中
+~~もしくはSeleniumを使わないように修正していただけるpull req募集中~~
+
+移行先のAG-ON PremiumはSeleniumなしで録画できるようになったので半年くらい待っていれば移行されるはず？
+
+### Q. AG-ON Premiumで有料コンテンツを録画できない
+自分が契約している月額コンテンツがないため、検証ができていません。
+そのため録画リストへの追加を行わないようにしています
+
+対応してくれるpull reqを募集しております
 
 ### Q. rtmpdumpが不安定 / CPUを100%消費する
 gitで最新のソースを取得してきてビルドすると改善することが多いです。

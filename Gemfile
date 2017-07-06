@@ -1,3 +1,4 @@
+# coding: utf-8
 source 'https://rubygems.org'
 
 
@@ -37,10 +38,6 @@ gem 'spring',        group: :development
 
 gem 'nokogiri'
 gem 'moji'
-#gem 'mysql2', '~> 0.3.17'
-#gem 'activerecord-mysql-unsigned'
-#gem 'activerecord-mysql-awesome'
-#gem 'sqlite3'
 gem 'pg'
 gem 'chronic'
 gem 'whenever'
@@ -49,6 +46,7 @@ gem 'mechanize'
 gem 'niconico', path: 'niconico'
 gem 'httparty'
 gem 'activerecord-import'
+gem 'pry'
 
 # AG-ONでのみ必要
 # 不要な場合は `bundle install --without agon development` のようにしてください
