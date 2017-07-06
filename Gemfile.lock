@@ -28,27 +28,19 @@ GEM
       activemodel (= 4.1.8)
       activesupport (= 4.1.8)
       arel (~> 5.0.0)
-    activerecord-import (0.17.1)
+    activerecord-import (0.19.0)
       activerecord (>= 3.2)
-    activerecord-mysql-awesome (0.0.9)
-      activerecord (~> 4.0)
-      activesupport (~> 4.0)
-      mysql2 (>= 0.3.18)
-    activerecord-mysql-unsigned (0.3.1)
-      activerecord (>= 3.2, < 5.0)
-      activesupport (>= 3.2, < 5.0)
-      mysql2
     activesupport (4.1.8)
       i18n (~> 0.6, >= 0.6.9)
       json (~> 1.7, >= 1.7.7)
       minitest (~> 5.1)
       thread_safe (~> 0.1)
       tzinfo (~> 1.1)
-    airbrussh (1.1.2)
+    airbrussh (1.3.0)
       sshkit (>= 1.6.1, != 1.7.0)
     arel (5.0.1.20140414130214)
     builder (3.2.3)
-    capistrano (3.8.0)
+    capistrano (3.8.2)
       airbrussh (>= 1.0.0)
       i18n
       rake (>= 10.0.0)
@@ -56,12 +48,12 @@ GEM
     capistrano-bundler (1.2.0)
       capistrano (~> 3.1)
       sshkit (~> 1.2)
-    capistrano-rails (1.2.3)
+    capistrano-rails (1.3.0)
       capistrano (~> 3.1)
       capistrano-bundler (~> 1.1)
     capistrano-scm-copy (0.7.0)
       capistrano (~> 3.0)
-    childprocess (0.6.2)
+    childprocess (0.7.1)
       ffi (~> 1.0, >= 1.0.11)
     chronic (0.10.2)
     coffee-rails (4.0.1)
@@ -71,7 +63,7 @@ GEM
       coffee-script-source
       execjs
     coffee-script-source (1.12.2)
-    domain_name (0.5.20170223)
+    domain_name (0.5.20170404)
       unf (>= 0.0.5, < 1.0.0)
     erubis (2.7.0)
     execjs (2.7.0)
@@ -80,17 +72,18 @@ GEM
     hike (1.2.3)
     http-cookie (1.0.3)
       domain_name (~> 0.5)
-    httparty (0.14.0)
+    httparty (0.15.5)
       multi_xml (>= 0.5.2)
-    i18n (0.8.1)
-    jbuilder (2.6.3)
-      activesupport (>= 3.0.0, < 5.2)
-      multi_json (~> 1.2)
+    i18n (0.8.4)
+    jbuilder (2.6.4)
+      activesupport (>= 3.0.0)
+      multi_json (>= 1.2)
     jquery-rails (3.1.4)
       railties (>= 3.0, < 5.0)
       thor (>= 0.14, < 2.0)
     json (1.8.6)
-    mail (2.6.4)
+    libv8 (3.16.14.19)
+    mail (2.6.6)
       mime-types (>= 1.16, < 4)
     mechanize (2.7.5)
       domain_name (~> 0.5, >= 0.5.1)
@@ -104,21 +97,20 @@ GEM
     mime-types (3.1)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2016.0521)
-    mini_portile2 (2.1.0)
-    minitest (5.10.1)
+    mini_portile2 (2.2.0)
+    minitest (5.10.2)
     moji (1.6)
     multi_json (1.12.1)
     multi_xml (0.6.0)
-    mysql2 (0.3.21)
     net-http-digest_auth (1.4.1)
     net-http-persistent (2.9.4)
     net-scp (1.2.1)
       net-ssh (>= 2.6.5)
     net-ssh (4.1.0)
-    nokogiri (1.7.0.1)
-      mini_portile2 (~> 2.1.0)
+    nokogiri (1.8.0)
+      mini_portile2 (~> 2.2.0)
     ntlm-http (0.1.1)
-    pg (0.20.0)
+    pg (0.21.0)
     rack (1.5.5)
     rack-test (0.6.3)
       rack (>= 1.0)
@@ -139,6 +131,7 @@ GEM
       thor (>= 0.18.1, < 2.0)
     rake (12.0.0)
     rdoc (4.3.0)
+    ref (2.0.0)
     rubyzip (1.2.1)
     sass (3.2.19)
     sass-rails (4.0.5)
@@ -149,10 +142,9 @@ GEM
     sdoc (0.4.2)
       json (~> 1.7, >= 1.7.7)
       rdoc (~> 4.0)
-    selenium-webdriver (3.3.0)
+    selenium-webdriver (3.4.3)
       childprocess (~> 0.5)
       rubyzip (~> 1.0)
-      websocket (~> 1.0)
     settingslogic (2.0.9)
     spring (1.7.2)
     sprockets (2.12.4)
@@ -164,25 +156,26 @@ GEM
       actionpack (>= 3.0)
       activesupport (>= 3.0)
       sprockets (>= 2.8, < 4.0)
-    sqlite3 (1.3.13)
-    sshkit (1.12.0)
+    sshkit (1.14.0)
       net-scp (>= 1.1.2)
       net-ssh (>= 2.8.0)
+    therubyracer (0.12.3)
+      libv8 (~> 3.16.14.15)
+      ref
     thor (0.19.4)
     thread_safe (0.3.6)
     tilt (1.4.1)
     turbolinks (5.0.1)
       turbolinks-source (~> 5)
-    turbolinks-source (5.0.0)
-    tzinfo (1.2.2)
+    turbolinks-source (5.0.3)
+    tzinfo (1.2.3)
       thread_safe (~> 0.1)
-    uglifier (3.1.7)
+    uglifier (3.2.0)
       execjs (>= 0.3.0, < 3)
     unf (0.1.4)
       unf_ext
-    unf_ext (0.0.7.2)
+    unf_ext (0.0.7.4)
     webrobots (0.1.2)
-    websocket (1.2.4)
     whenever (0.9.7)
       chronic (>= 0.6.3)
 
@@ -191,8 +184,6 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord-import
-  activerecord-mysql-awesome
-  activerecord-mysql-unsigned
   capistrano-rails
   capistrano-scm-copy
   chronic
@@ -203,7 +194,6 @@ DEPENDENCIES
   jquery-rails
   mechanize
   moji
-  mysql2 (~> 0.3.17)
   niconico!
   nokogiri
   pg
@@ -213,7 +203,7 @@ DEPENDENCIES
   selenium-webdriver
   settingslogic
   spring
-  sqlite3
+  therubyracer
   turbolinks
   uglifier (>= 1.3.0)
   whenever

@@ -129,12 +129,13 @@ module Main
 
       program_list.each do |program|
         ActiveRecord::Base.transaction do
-          if NiconicoLiveProgram.where(id: program.id).first
+          lvid = program.id.gsub(/^lv/,"")
+          if NiconicoLiveProgram.where(id: lvid).first
             next
           end
 
           p = NiconicoLiveProgram.new
-          p.id = program.id
+          p.id = lvid
           p.title = program.title
           p.state = NiconicoLiveProgram::STATE[:waiting]
           p.cannot_recovery = false
@@ -175,7 +176,6 @@ module Main
         exit 0
       end
 
-
       Settings.niconico.live.keyword_wikipedia_categories.each do |category|
         items = Wikipedia::Scraping.new.main(category)
         items = items.map do |item|
@@ -190,15 +190,11 @@ module Main
     end
 
     def rec_one
-      jobs = nil
+      jobs = []
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           jobs = Job
-            .where(
-              "? <= `start` and `start` <= ?",
-              2.minutes.ago,
-              5.minutes.from_now
-            )
+            .where({ start: (2.minutes.ago)..(5.minutes.from_now) })
             .where(state: Job::STATE[:scheduled])
             .order(:start)
             .lock!
@@ -208,6 +204,9 @@ module Main
             j.save!
           end
         end
+      end
+      if jobs.empty?
+        return 0
       end
 
       if jobs.empty?
@@ -406,7 +405,7 @@ module Main
       p = klass
         .where(state: klass::STATE[:waiting])
       if older_than
-        p = p.where('`created_at` <= ?', older_than)
+        p = p.where('created_at <= ?', older_than)
       end
       p = p
         .lock
@@ -418,7 +417,7 @@ module Main
                klass::STATE[:failed],
                klass::STATE[:downloading],
         ])
-        .where('retry_count <= ?', HibikiProgram::RETRY_LIMIT)
+        .where('retry_count <= ?', klass::RETRY_LIMIT)
         .where('updated_at <= ?', 1.day.ago)
         .lock
         .first
