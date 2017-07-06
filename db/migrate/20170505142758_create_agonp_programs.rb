@@ -1,25 +1,19 @@
 class CreateAgonpPrograms < ActiveRecord::Migration
   def up
-    sql = <<EOF
-CREATE TABLE `agonp_programs` (
-    `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
-    `title` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
-    `personality` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
-    `episode_id` varchar(250) CHARACTER SET ASCII NOT NULL,
-    `price` varchar(100) CHARACTER SET utf8mb4 NOT NULL,
-    `state` varchar(100) CHARACTER SET ASCII NOT NULL,
-    `retry_count` int UNSIGNED NOT NULL,
-    `created_at` datetime NOT NULL,
-    `updated_at` datetime NOT NULL,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY (`episode_id`)
-);
-EOF
-    ActiveRecord::Base.connection.execute(sql)
+    create_table 'agonp_programs', force: true, unsigned: true do |t|
+      t.column 'title',       :string, null: false, limit: 250, charset: 'utf8mb4'
+      t.column 'personality', :string, null: false, limit: 250, charset: 'utf8mb4'
+      t.column 'episode_id',  :string, null: false, limit: 250
+      t.column 'price',       :string, null: false, limit: 100, charset: 'utf8mb4'
+      t.column 'state',       :string, null: false, limit: 100
+      t.column 'retry_count', :integer, null: false
+      t.timestamps null: false
+
+      t.index 'episode_id', unique: true
+    end
   end
 
   def down
-    sql = 'DROP TABLE `agonp_programs`;'
-    ActiveRecord::Base.connection.execute(sql)
+    drop_table 'agonp_programs'
   end
 end
