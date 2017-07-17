@@ -30,9 +30,7 @@ module Main
     end
 
     def radiru_scrape
-      unless Settings.radiru_channels
-        exit 0
-      end
+      exit 0 unless Settings.radiru_channels
 
       Settings.radiru_channels.each do |ch|
         programs = Radiru::Scraping.new.get(ch)
