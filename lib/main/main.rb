@@ -251,7 +251,6 @@ module Main
       onsen_download
       hibiki_download
       anitama_download
-      agon_download
       agonp_download
     end
 
