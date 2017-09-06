@@ -1,4 +1,4 @@
-class KeyValue < ActiveRecord::Migration
+class CreateKeyValue < ActiveRecord::Migration
   def up
     adapter = connection.adapter_name.downcase
     create_table 'key_value', force: true, id: false do |t|

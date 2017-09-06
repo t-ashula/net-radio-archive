@@ -357,6 +357,30 @@ module Main
         p.save!
       end
 
+      download_(model_klass, downloader, p)
+
+      0
+    end
+
+    def download2(model_klass, downloader)
+      p = nil
+      ActiveRecord::Base.transaction do
+        # Hibikiで古いデータのキャッシュが残っているのかepisode_idが一致せず
+        # outdatedと誤判定してしまうケースがあった
+        # 対策として時間を置くことでprograms APIと各個別program APIのepisode_idが一致すること狙う
+        p = fetch_downloadable_program(model_klass, 30.minutes.ago)
+        return 0 unless p
+
+        p.state = model_klass::STATE[:downloading]
+        p.save!
+      end
+
+      download_(model_klass, downloader, p)
+
+      return 0
+    end
+
+    def download_(model_klass, downloader, p)
       succeed = false
       begin
         succeed = downloader.download(p)
@@ -376,32 +400,6 @@ module Main
         end
       end
       p.save!
-
-      0
-    end
-
-    def download2(model_klass, downloader)
-      p = nil
-      ActiveRecord::Base.transaction do
-        # Hibikiで古いデータのキャッシュが残っているのかepisode_idが一致せず
-        # outdatedと誤判定してしまうケースがあった
-        # 対策として時間を置くことでprograms APIと各個別program APIのepisode_idが一致すること狙う
-        p = fetch_downloadable_program(model_klass, 30.minutes.ago)
-        return 0 unless p
-
-        p.state = model_klass::STATE[:downloading]
-        p.save!
-      end
-
-      downloader.download(p)
-      if p.state == model_klass::STATE[:failed]
-        p.retry_count += 1
-        if p.retry_count > model_klass::RETRY_LIMIT
-          Rails.logger.error "#{model_klass.name} rec failed. exceeded retry_limit. #{p.id}: #{p.title}"
-        end
-      end
-      p.save!
-
       0
     end
 
