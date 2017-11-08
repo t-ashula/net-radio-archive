@@ -14,7 +14,10 @@ module Main
     end
 
     def radiko_scrape
-      Settings.radiko_channels.each do |ch|
+      channels = []
+      channels += Settings.radiko_channels if Settings.radiko_channels
+      channels += Settings.radiko_premium.channels if Settings.try(:radiko_premium).try(:channels)
+      channels.each do |ch|
         programs = Radiko::Scraping.new.get(ch)
         programs.each do |p|
           title = p.title
@@ -92,31 +95,8 @@ module Main
       end
     end
 
-    def anitama_scrape
-      program_list = Anitama::Scraping.new.main
-
-      program_list.each do |program|
-        ActiveRecord::Base.transaction do
-          if AnitamaProgram
-              .where(book_id: program.book_id)
-              .where(update_time: program.update_time)
-              .first
-            next
-          end
-
-          p = AnitamaProgram.new
-          p.book_id = program.book_id
-          p.title = program.title
-          p.update_time = program.update_time
-          p.state = HibikiProgram::STATE[:waiting]
-          p.retry_count = 0
-          p.save
-        end
-      end
-    end
-
     def niconama_scrape
-      unless Settings.niconico
+      if !Settings.niconico || !Settings.niconico.live
         exit 0
       end
 
@@ -199,6 +179,29 @@ module Main
       end
     end
 
+    def nicodou_scrape
+      if !Settings.niconico || !Settings.niconico.video
+        exit 0
+      end
+
+      program_list = NiconicoVideo::Scraping.new.main
+
+      program_list.each do |program|
+        ActiveRecord::Base.transaction do
+          if NiconicoVideoProgram.where(video_id: program.video_id).first
+            next
+          end
+
+          p = NiconicoVideoProgram.new
+          p.video_id = program.video_id
+          p.title = program.title
+          p.state = OndemandRetry::STATE[:waiting]
+          p.retry_count = 0
+          p.save
+        end
+      end
+    end
+
     def rec_one
       jobs = []
       ActiveRecord::Base.connection_pool.with_connection do
@@ -250,7 +253,6 @@ module Main
     def rec_ondemand
       onsen_download
       hibiki_download
-      anitama_download
       agonp_download
     end
 
@@ -380,23 +382,25 @@ module Main
       return 0
     end
 
-    def download_(model_klass, downloader, p)
+    def download_(klass, downloader, p)
       succeed = false
       begin
         succeed = downloader.download(p)
       rescue => e
         Rails.logger.error %W|#{e.class}\n#{e.inspect}\n#{e.backtrace.join("\n")}|
       end
-      p.state =
-        if succeed
-          model_klass::STATE[:done]
-        else
-          model_klass::STATE[:failed]
-        end
+      if p.state == klass::STATE[:downloading]
+        p.state =
+          if succeed
+            klass::STATE[:done]
+          else
+            klass::STATE[:failed]
+          end
+      end
       unless succeed
         p.retry_count += 1
-        if p.retry_count > model_klass::RETRY_LIMIT
-          Rails.logger.error "#{model_klass.name} rec failed. exceeded retry_limit. #{p.id}: #{p.title}"
+        if p.retry_count > klass::RETRY_LIMIT
+          Rails.logger.error "#{klass.name} rec failed. exceeded retry_limit. #{p.id}: #{p.title}"
         end
       end
       p.save!

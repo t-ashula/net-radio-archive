@@ -24,14 +24,14 @@ namespace :main do
     Main::Main.new.hibiki_scrape
   end
 
-  desc 'anitama scrape'
-  task :anitama_scrape => :environment do
-    Main::Main.new.anitama_scrape
-  end
-
   desc 'niconama scrape'
   task :niconama_scrape => :environment do
     Main::Main.new.niconama_scrape
+  end
+
+  desc 'nicodou scrape'
+  task :nicodou_scrape => :environment do
+    Main::Main.new.nicodou_scrape
   end
 
   desc 'agonp scrape'

@@ -1,17 +1,12 @@
-module Anitama
+module NiconicoVideo
   class Downloading
-    CH_NAME = 'anitama'
+    CH_NAME = 'nicodou'
 
     def download(program)
       Main::prepare_working_dir(CH_NAME)
       path = filepath(program)
       begin
-        Anitama::Scraping.new.download(program.book_id, path)
-        if Settings.force_mp4 && /\.([a-zA-Z0-9]+?)$/.match(path)[1] == 'mp3'
-          mp4_path = path.gsub(/\.([a-zA-Z0-9]+?)$/,'.mp4')
-          Main::convert_ffmpeg_to_mp4_with_blank_video(path, mp4_path, program)
-          path = mp4_path
-        end
+        'youtube-dl -v -f "[vbr<599]+[abr>127]" -uyusu767-foo@yahoo.co.jp -prakisuta http://www.nicovideo.jp/watch/1509345736'
       rescue => e
         Rails.logger.error e
         return false
