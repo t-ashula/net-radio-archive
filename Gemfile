@@ -60,3 +60,5 @@ group :development do
   gem 'capistrano-scm-copy'
 end
 gem 'therubyracer'
+
+gem 'm3u8'
