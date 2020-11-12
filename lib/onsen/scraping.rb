@@ -55,20 +55,10 @@ module Onsen
       Program.new(title, number, update_date, file_url, personality)
     end
 
-    def get_dom()
-      url = "http://www.onsen.ag/app/programs.xml"
-      code_date = Time.now.strftime("%w%d%H")
-      code = Digest::MD5.hexdigest("onsen#{code_date}")
-      res = Net::HTTP.post_form(
-        URI.parse(url),
-        'code' => code,
-        'file_name' => "regular_1"
-      )
-
-      unless res.kind_of?(Net::HTTPSuccess)
-        Rails.logger.error "onsen scraping error: #{url}, #{res.code}"
-      end
-      Nokogiri::XML.parse(res.body)
+    def get_programs()
+      url = "https://www.onsen.ag/web_api/programs"
+      res = @a.get(url)
+      JSON.parse(res.body)
     end
   end
 end
