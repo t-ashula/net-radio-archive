@@ -128,7 +128,7 @@ module Radiko
                -vn
                -bsf:a aac_adtstoasc
                -t "#{hms(job.length_sec + 60)}"
-               "#{out_path}"
+               #{Shellwords.escape(out_path)}
                2>&1
       CMD
       exit_status, output = Main::shell_exec(command)
