@@ -120,20 +120,20 @@ module Radiko
       areafree = logined? ? "1" : "0"
       playlist_url = urls['urls']['url'].find { |u| u['areafree'] == areafree }["playlist_create_url"]
       out_path = Main::file_path_working(job.ch, title(job), 'm4a')
-      command = <<~CMD.squish
-        ffmpeg -loglevel error
-               -headers "X-Radiko-Authtoken: #{@auth_token}"
-               -i "#{playlist_url}"
-               -acodec copy
-               -vn
-               -bsf:a aac_adtstoasc
-               -t "#{hms(job.length_sec + 60)}"
-               #{Shellwords.escape(out_path)}
-               2>&1
-      CMD
-      exit_status, output = Main::shell_exec(command)
+      arg = "\
+        -loglevel error \
+        -y \
+        -headers \"X-Radiko-Authtoken: #{@auth_token}\" \
+        -i #{Shellwords.escape(playlist_url)} \
+        -acodec copy \
+        -vn \
+        -bsf:a aac_adtstoasc \
+        -t #{job.length_sec + 60} \
+        #{Shellwords.escape(out_path)} \
+      "
+      exit_status, output = Main::ffmpeg(arg)
       unless exit_status.success?
-        Rails.logger.error "rec failed. cmd: #{command}, job:#{job.id}, exit_status:#{exit_status}, output:#{output}"
+        Rails.logger.error "rec failed. ffmpeg: #{arg}, job:#{job.id}, exit_status:#{exit_status}, output:#{output}"
         return false
       end
 
@@ -160,11 +160,11 @@ module Radiko
       if Settings.force_mp4
         mp4_path = Main::file_path_working(job.ch, title(job), 'mp4')
         Main::convert_ffmpeg_to_mp4_with_blank_video(tmp_path, mp4_path, job)
-        dst_path = mp4_path
+        src_path = mp4_path
       else
-        dst_path = tmp_path
+        src_path = tmp_path
       end
-      Main::move_to_archive_dir(job.ch, job.start, dst_path)
+      Main::move_to_archive_dir(job.ch, job.start, src_path)
     end
 
     def title(job)
